@@ -50,7 +50,6 @@ internal class CloneService : Service() {
         // failing to post its notification in time.
         CloneNotifications.ensureChannels(this)
         startForeground(CloneNotifications.PROGRESS_ID, CloneNotifications.progress(this, label, 0f))
-        CloneCoordinator.onStarted(packageName, label)
 
         scope.launch {
             try {
@@ -117,7 +116,7 @@ internal class CloneService : Service() {
                     completedBytes += File(path).length()
                 }
 
-                CloneCoordinator.onAwaitingConfirmation()
+                CloneCoordinator.onAwaitingConfirmation(getString(R.string.install_pending))
                 updateProgressNotification(label, 1f)
                 session.commit(statusIntent(sessionId, cloneLabel).intentSender)
                 committed = true
@@ -156,12 +155,20 @@ internal class CloneService : Service() {
     }
 
     companion object {
+        /** Starts a clone, unless one is already running. */
         fun start(context: Context, app: InstalledApp) {
+            if (!CloneCoordinator.tryClaim(app.packageName, app.label)) return
             val intent = Intent(context, CloneService::class.java)
                 .putExtra(EXTRA_PACKAGE, app.packageName)
                 .putExtra(EXTRA_LABEL, app.label)
                 .putStringArrayListExtra(EXTRA_PATHS, ArrayList(app.apkPaths))
-            context.startForegroundService(intent)
+            try {
+                context.startForegroundService(intent)
+            } catch (t: Throwable) {
+                // Nothing will arrive to clear the claim if the service never
+                // came up, so hand the slot back here.
+                CloneCoordinator.release()
+            }
         }
     }
 }

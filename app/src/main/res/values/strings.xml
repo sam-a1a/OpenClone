@@ -22,4 +22,10 @@
     <string name="clone_failed">Clone failed: %1$s</string>
     <string name="clone_failed_title">Clone failed</string>
     <string name="install_cancelled">Install cancelled</string>
+    <string name="install_pending">Still waiting on the installer. Check your notifications to finish.</string>
+
+    <string name="permission_title">Allow installing apps</string>
+    <string name="permission_body">A clone is a real app package, so Android asks OpenClone for permission to install it. Grant \"Install unknown apps\" and try again.</string>
+    <string name="permission_open_settings">Open settings</string>
+    <string name="permission_not_now">Not now</string>
 </resources>

@@ -2,8 +2,14 @@ package com.sam.openclone.clone
 
 /** A clone's package name plus the ordinal shown to the user. */
 internal class CloneName(val packageName: String, val ordinal: Int) {
-    /** Distinguishes the clone in the launcher, e.g. "Signal (2)". */
-    fun label(originalLabel: String): String = "$originalLabel ($ordinal)"
+    /**
+     * Distinguishes the clone in the launcher, e.g. "Signal (2)".
+     *
+     * An existing ordinal is stripped first, so cloning "Signal (2)" gives
+     * "Signal (3)" rather than stacking up as "Signal (2) (3)".
+     */
+    fun label(originalLabel: String): String =
+        "${CloneNaming.stripOrdinal(originalLabel)} ($ordinal)"
 }
 
 /**
@@ -17,9 +23,12 @@ internal class CloneName(val packageName: String, val ordinal: Int) {
 internal object CloneNaming {
 
     private val CLONE_SUFFIX = Regex("""\.clone\d+$""")
+    private val LABEL_ORDINAL = Regex(""" \(\d+\)$""")
 
     fun originalPackageOf(packageName: String): String =
         CLONE_SUFFIX.replace(packageName, "")
+
+    fun stripOrdinal(label: String): String = LABEL_ORDINAL.replace(label, "")
 
     fun isClone(packageName: String): Boolean = CLONE_SUFFIX.containsMatchIn(packageName)
 

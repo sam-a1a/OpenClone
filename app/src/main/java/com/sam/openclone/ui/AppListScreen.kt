@@ -1,5 +1,12 @@
 package com.sam.openclone.ui
 
+import android.content.Intent
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -67,6 +75,13 @@ internal fun AppListScreen() {
     var apps by remember { mutableStateOf<List<InstalledApp>?>(null) }
     var query by remember { mutableStateOf("") }
     var reloadToken by remember { mutableIntStateOf(0) }
+    var needsInstallPermission by remember { mutableStateOf(false) }
+
+    // Returning from the settings screen: nothing to read back, the permission
+    // is re-checked on the next tap.
+    val settingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { }
 
     LaunchedEffect(reloadToken) {
         apps = AppRepository.load(context, refresh = reloadToken > 0)
@@ -129,19 +144,59 @@ internal fun AppListScreen() {
                             progress = cloneState.progress,
                             awaiting = cloneState.awaitingConfirmation,
                             enabled = cloneState.busyPackage == null,
-                            onClick = { CloneService.start(context, app) },
+                            onClick = {
+                                // Checked before the work, not after: without
+                                // this the user rewrites and signs the whole
+                                // APK only to be sent to Settings at the end.
+                                if (context.packageManager.canRequestPackageInstalls()) {
+                                    CloneService.start(context, app)
+                                } else {
+                                    needsInstallPermission = true
+                                }
+                            },
                         )
                     }
                 }
             }
         }
     }
+
+    if (needsInstallPermission) {
+        AlertDialog(
+            onDismissRequest = { needsInstallPermission = false },
+            title = { Text(stringResource(R.string.permission_title)) },
+            text = { Text(stringResource(R.string.permission_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    needsInstallPermission = false
+                    settingsLauncher.launch(
+                        Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            "package:${context.packageName}".toUri(),
+                        )
+                    )
+                }) { Text(stringResource(R.string.permission_open_settings)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { needsInstallPermission = false }) {
+                    Text(stringResource(R.string.permission_not_now))
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun SearchField(query: String, onQueryChange: (String) -> Unit, subtitle: String?) {
     Surface(color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp)) {
+        // The bar is drawn edge to edge, so it owns the status bar inset.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.app_name),
