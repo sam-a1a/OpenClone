@@ -43,8 +43,6 @@ internal class AxmlStringPool(
 
     operator fun get(ref: Int): String? = if (ref in strings.indices) strings[ref] else null
 
-    fun find(s: String): Int = index[s] ?: NO_STRING
-
     /** Returns the index of [s], appending it to the pool if it is not present. */
     fun add(s: String): Int {
         index[s]?.let { return it }
@@ -202,17 +200,13 @@ internal sealed class AxmlChunk {
         val comment: Int,
         val ns: Int,
         val name: Int,
-        val idIndex: Int,
-        val classIndex: Int,
-        val styleIndex: Int,
+        // 1-based back-references to the id/class/style attributes, 0 when
+        // absent. They shift if an attribute is ever removed.
+        var idIndex: Int,
+        var classIndex: Int,
+        var styleIndex: Int,
         val attributes: MutableList<AxmlAttribute>,
-    ) : AxmlChunk() {
-        fun attribute(nsRef: Int, nameRef: Int): AxmlAttribute? {
-            if (nameRef == NO_STRING) return null
-            for (a in attributes) if (a.name == nameRef && a.ns == nsRef) return a
-            return null
-        }
-    }
+    ) : AxmlChunk()
 
     class EndElement(
         val lineNumber: Int,
@@ -245,15 +239,6 @@ internal class AxmlDocument(
     private val resourceMap: ByteArray?,
     val chunks: List<AxmlChunk>,
 ) {
-    /** Element name lookups are by string reference, so resolve it once. */
-    fun elementsNamed(vararg names: String): Sequence<AxmlChunk.StartElement> {
-        val refs = names.map { pool.find(it) }.filter { it != NO_STRING }.toHashSet()
-        if (refs.isEmpty()) return emptySequence()
-        return chunks.asSequence()
-            .filterIsInstance<AxmlChunk.StartElement>()
-            .filter { it.name in refs }
-    }
-
     fun toByteArray(): ByteArray {
         val body = ByteWriter(1 shl 14)
         for (chunk in chunks) writeChunk(body, chunk)
