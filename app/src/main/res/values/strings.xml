@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">OpenClone</string>
+
+    <string name="search_hint">Search apps</string>
+    <string name="clone_action">Clone</string>
+    <string name="cloning">Cloning…</string>
+    <string name="waiting_for_install">Waiting for install…</string>
+    <string name="no_apps">No apps match \"%1$s\"</string>
+    <string name="loading_apps">Loading apps…</string>
+    <string name="clone_badge">clone</string>
+    <string name="app_count">%1$d apps</string>
+
+    <string name="channel_progress">Clone progress</string>
+    <string name="channel_result">Clone results</string>
+    <string name="notification_cloning">Cloning %1$s</string>
+    <string name="notification_ready">%1$s is ready to install</string>
+    <string name="notification_ready_body">Tap to finish installing the clone.</string>
+
+    <string name="clone_installed">%1$s installed</string>
+    <string name="clone_installed_title">Clone installed</string>
+    <string name="clone_installed_body">%1$s is ready to use.</string>
+    <string name="clone_failed">Clone failed: %1$s</string>
+    <string name="clone_failed_title">Clone failed</string>
+    <string name="install_cancelled">Install cancelled</string>
 </resources>
