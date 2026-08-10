@@ -33,7 +33,18 @@ internal class InstalledApp(
  */
 internal object AppRepository {
 
-    suspend fun load(context: Context): List<InstalledApp> = withContext(Dispatchers.IO) {
+    // Reading every app's label costs a second or so on a full device. Holding
+    // the result means a rotation or a return to the screen is instant, and it
+    // is only rebuilt when a clone actually changes what is installed.
+    @Volatile
+    private var cached: List<InstalledApp>? = null
+
+    suspend fun load(context: Context, refresh: Boolean = false): List<InstalledApp> {
+        if (!refresh) cached?.let { return it }
+        return query(context).also { cached = it }
+    }
+
+    private suspend fun query(context: Context): List<InstalledApp> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val resolved = pm.queryIntentActivities(
